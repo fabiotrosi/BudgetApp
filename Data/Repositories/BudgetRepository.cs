@@ -43,7 +43,7 @@ namespace BudgetApp.Data.Repositories
               WHERE b.[CreatedByUserId] = @UserId
                  OR EXISTS (
                      SELECT 1 FROM [dbo].[BudgetUser] bu
-                     WHERE bu.[BudgetId] = b.[Id] AND bu.[UserId] = @UserId
+                     WHERE bu.[BudgetId] = b.[Id] AND bu.[UserId] = @UserId AND bu.[IsActive] = 1
                  )
             ";
             return await conn.QueryAsync<T>(sql, new { UserId = userId });

@@ -78,7 +78,9 @@ namespace BudgetApp.Controllers
             if (budget == null)
                 return NotFound();
 
-            var budgetUsers = (await _budgetUserRepo.GetByBudgetId(vm.BudgetId)).ToList();
+            var budgetUsers = (
+                await _budgetUserRepo.GetByBudgetId(vm.BudgetId, includeInactive: true)
+            ).ToList();
             bool isMainLeader = budgetUsers.IsMainLeaderFor(userId);
             if (!isMainLeader)
             {
@@ -108,12 +110,13 @@ namespace BudgetApp.Controllers
                 return PartialView("_InviteLeaderModal", vm);
             }
 
-            if (budgetUsers.Any(bu => bu.UserId == targetUser.Id))
+            var existingMembership = budgetUsers.FirstOrDefault(bu => bu.UserId == targetUser.Id);
+            if (existingMembership != null)
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    $"{targetUser.DisplayName} ist bereits Leitperson dieses Lagers."
-                );
+                var message = existingMembership.IsActive
+                    ? $"{targetUser.DisplayName} ist bereits Leitperson dieses Lagers."
+                    : $"{targetUser.DisplayName} wurde entfernt. Bitte über \"Reaktivieren\" auf der Leitpersonen-Seite wiederherstellen.";
+                ModelState.AddModelError(string.Empty, message);
                 return PartialView("_InviteLeaderModal", vm);
             }
 

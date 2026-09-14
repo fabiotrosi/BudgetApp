@@ -388,8 +388,15 @@ namespace BudgetApp.Controllers
                 return Forbid();
 
             var budgetUsers = (await _budgetUserRepo.GetByBudgetId(id)).ToList();
-            var invites = (await _inviteRepo.GetByBudgetId(id)).ToList();
             bool isMainLeader = budgetUsers.IsMainLeaderFor(userId);
+            if (isMainLeader)
+            {
+                // Only the creator gets to see (and reactivate) deactivated leaders.
+                budgetUsers = (
+                    await _budgetUserRepo.GetByBudgetId(id, includeInactive: true)
+                ).ToList();
+            }
+            var invites = (await _inviteRepo.GetByBudgetId(id)).ToList();
 
             var vm = new BudgetLeadersViewModel
             {
@@ -587,7 +594,7 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RemoveBudgetUser(int budgetUserId, int budgetId)
+        public async Task<IActionResult> DeactivateBudgetUser(int budgetUserId, int budgetId)
         {
             var toast = new ToastMessageViewModel();
             try
@@ -605,17 +612,59 @@ namespace BudgetApp.Controllers
                     return RedirectToAction(nameof(Leaders), new { id = budgetId });
                 }
 
-                await _budgetUserRepo.Delete(budgetUserId);
+                await _budgetUserRepo.Deactivate(budgetUserId, GetCurrentUserId());
                 toast = new ToastMessageViewModel
                 {
                     Title = "Erfolg",
-                    Message = "Leitperson entfernt.",
+                    Message = "Leitperson deaktiviert.",
                     Type = ToastType.Success,
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in RemoveBudgetUser");
+                _logger.LogError(ex, "Error in DeactivateBudgetUser");
+                toast = new ToastMessageViewModel
+                {
+                    Title = "Fehler",
+                    Message = "Ein unerwarteter Fehler ist aufgetreten.",
+                    Type = ToastType.Error,
+                };
+            }
+            TempData.Put("ToastMsg", toast);
+            return RedirectToAction(nameof(Leaders), new { id = budgetId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReactivateBudgetUser(int budgetUserId, int budgetId)
+        {
+            var toast = new ToastMessageViewModel();
+            try
+            {
+                var budget = await _budgetRepo.GetById(budgetId);
+                if (budget == null || budget.CreatedByUserId != GetCurrentUserId())
+                {
+                    toast = new ToastMessageViewModel
+                    {
+                        Title = "Fehler",
+                        Message = "Keine Berechtigung.",
+                        Type = ToastType.Error,
+                    };
+                    TempData.Put("ToastMsg", toast);
+                    return RedirectToAction(nameof(Leaders), new { id = budgetId });
+                }
+
+                await _budgetUserRepo.Reactivate(budgetUserId, GetCurrentUserId());
+                toast = new ToastMessageViewModel
+                {
+                    Title = "Erfolg",
+                    Message = "Leitperson reaktiviert.",
+                    Type = ToastType.Success,
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ReactivateBudgetUser");
                 toast = new ToastMessageViewModel
                 {
                     Title = "Fehler",

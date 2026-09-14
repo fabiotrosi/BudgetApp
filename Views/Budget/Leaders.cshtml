@@ -26,7 +26,7 @@
         <tbody>
             @foreach (var member in Model.BudgetUsers)
             {
-                <tr>
+                <tr class="@(!member.IsActive ? "text-muted" : "")">
                     <td>@member.DisplayName</td>
                     <td>@member.Email</td>
                     <td>
@@ -38,17 +38,32 @@
                         {
                             <span class="badge bg-secondary">Leitperson</span>
                         }
+                        @if (!member.IsActive)
+                        {
+                            <span class="badge bg-secondary">Deaktiviert</span>
+                        }
                     </td>
                     <td class="text-end">
-                        @if (!member.IsMainLeader)
+                        @if (!member.IsMainLeader && member.IsActive)
                         {
-                            <form asp-controller="Budget" asp-action="RemoveBudgetUser" method="post" class="d-inline"
-                                  onsubmit="return confirm('Leitperson wirklich entfernen?')">
+                            <form asp-controller="Budget" asp-action="DeactivateBudgetUser" method="post" class="d-inline"
+                                  onsubmit="return confirm('Leitperson wirklich deaktivieren?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="budgetUserId" value="@member.Id" />
                                 <input type="hidden" name="budgetId" value="@Model.Budget.Id" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-person-dash"></i>
+                                </button>
+                            </form>
+                        }
+                        else if (!member.IsMainLeader && !member.IsActive)
+                        {
+                            <form asp-controller="Budget" asp-action="ReactivateBudgetUser" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="budgetUserId" value="@member.Id" />
+                                <input type="hidden" name="budgetId" value="@Model.Budget.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    Reaktivieren <i class="bi bi-arrow-repeat"></i>
                                 </button>
                             </form>
                         }
