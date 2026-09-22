@@ -612,6 +612,23 @@ namespace BudgetApp.Controllers
                     return RedirectToAction(nameof(Leaders), new { id = budgetId });
                 }
 
+                var targetBudgetUsers = await _budgetUserRepo.GetByBudgetId(
+                    budgetId,
+                    includeInactive: true
+                );
+                var target = targetBudgetUsers.FirstOrDefault(bu => bu.Id == budgetUserId);
+                if (target == null || target.IsMainLeader)
+                {
+                    toast = new ToastMessageViewModel
+                    {
+                        Title = "Fehler",
+                        Message = "Keine Berechtigung.",
+                        Type = ToastType.Error,
+                    };
+                    TempData.Put("ToastMsg", toast);
+                    return RedirectToAction(nameof(Leaders), new { id = budgetId });
+                }
+
                 await _budgetUserRepo.Deactivate(budgetUserId, GetCurrentUserId());
                 toast = new ToastMessageViewModel
                 {

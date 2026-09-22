@@ -44,7 +44,7 @@
                         }
                     </td>
                     <td class="text-end">
-                        @if (!member.IsMainLeader && member.IsActive)
+                        @if (Model.IsMainLeader && !member.IsMainLeader && member.IsActive)
                         {
                             <form asp-controller="Budget" asp-action="DeactivateBudgetUser" method="post" class="d-inline"
                                   onsubmit="return confirm('Leitperson wirklich deaktivieren?')">
@@ -56,7 +56,7 @@
                                 </button>
                             </form>
                         }
-                        else if (!member.IsMainLeader && !member.IsActive)
+                        else if (Model.IsMainLeader && !member.IsMainLeader && !member.IsActive)
                         {
                             <form asp-controller="Budget" asp-action="ReactivateBudgetUser" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
@@ -105,6 +105,15 @@
                                 case InviteStatus.Declined:
                                     <span class="badge bg-secondary">Abgelehnt</span>
                                     break;
+                            }
+                            @if (
+                                invite.Status == InviteStatus.Accepted
+                                && Model.BudgetUsers.Any(bu =>
+                                    bu.UserId == invite.InvitedUserId && !bu.IsActive
+                                )
+                            )
+                            {
+                                <span class="badge bg-secondary">Deaktiviert</span>
                             }
                         </td>
                         <td>
