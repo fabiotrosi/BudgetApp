@@ -1,5 +1,9 @@
 # BudgetApp
 
+[![.NET Build](https://github.com/fabiotrosi/BudgetApp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/fabiotrosi/BudgetApp/actions/workflows/dotnet.yml)
+[![CSharpier](https://github.com/fabiotrosi/BudgetApp/actions/workflows/csharpier-format-check.yml/badge.svg)](https://github.com/fabiotrosi/BudgetApp/actions/workflows/csharpier-format-check.yml)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
 BudgetApp is a .NET 10 ASP.NET Core MVC web application for event-based budget management, designed for youth camps and similar events. It supports a two-phase budget workflow — **Provisorisch** (forecast) and **Definitiv** (real amounts) — and allows budgets to be generated from reusable templates.
 
 The data model can be viewed here:
@@ -22,6 +26,12 @@ The data model can be viewed here:
 - **Architecture:** Repository pattern — one repository per table, all async, injected via interfaces
 - **Frontend:** Bootstrap 5, Bootstrap Icons
 - **Localization:** Fixed to `de-CH`
+
+### How can I help?
+
+- **Report a bug or suggest a feature** by opening a [GitHub issue](https://github.com/fabiotrosi/BudgetApp/issues)
+- **Pick up an open issue** and submit a pull request
+- Before opening a pull request, please read [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Getting Started
 
@@ -61,3 +71,11 @@ docker compose logs sqlserver  # View init output
 ```
 
 Connection string and SA password (`BudgetApp_Dev@2024`) are in `appsettings.Development.json`.
+
+## Maintainer
+
+[Fabio Trosi](https://github.com/fabiotrosi)
+
+## License
+
+[AGPL-3.0-or-later](LICENSE)
