@@ -1,3 +1,4 @@
+using BudgetApp.Models;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -12,8 +13,9 @@ namespace BudgetApp.Services
         private readonly string? _password;
         private readonly string _from;
         private readonly bool _enableSsl;
+        private readonly IRazorViewToStringRenderer _viewRenderer;
 
-        public EmailService(IConfiguration config)
+        public EmailService(IConfiguration config, IRazorViewToStringRenderer viewRenderer)
         {
             _host =
                 config["Smtp:Host"]
@@ -25,26 +27,26 @@ namespace BudgetApp.Services
                 config["Smtp:From"]
                 ?? throw new InvalidOperationException("Smtp:From not configured.");
             _enableSsl = bool.Parse(config["Smtp:EnableSsl"] ?? "false");
+            _viewRenderer = viewRenderer;
         }
 
-        public Task SendConfirmationEmailAsync(
+        public async Task SendConfirmationEmailAsync(
             string toEmail,
             string displayName,
             string confirmUrl
         )
         {
             var subject = "Bitte bestätigen Sie Ihre E-Mail-Adresse";
-            var html =
-                $@"
-                <p>Hallo {displayName},</p>
-                <p>Bitte bestätigen Sie Ihre E-Mail-Adresse, um BudgetApp uneingeschränkt nutzen zu können.</p>
-                <p><a href=""{confirmUrl}"">E-Mail-Adresse bestätigen</a></p>
-                <p>Dieser Link ist 24 Stunden gültig.</p>
-            ";
-            return SendAsync(toEmail, subject, html);
+            var model = new ConfirmationEmailViewModel
+            {
+                DisplayName = displayName,
+                ConfirmUrl = confirmUrl,
+            };
+            var html = await _viewRenderer.RenderAsync("~/Views/Emails/Confirmation.cshtml", model);
+            await SendAsync(toEmail, subject, html);
         }
 
-        public Task SendBudgetInviteEmailAsync(
+        public async Task SendBudgetInviteEmailAsync(
             string toEmail,
             string displayName,
             string budgetName,
@@ -52,13 +54,14 @@ namespace BudgetApp.Services
         )
         {
             var subject = "Einladung zu einem Lager";
-            var html =
-                $@"
-                <p>Hallo {displayName},</p>
-                <p>Sie wurden zum Lager <strong>{budgetName}</strong> eingeladen.</p>
-                <p><a href=""{inviteUrl}"">Einladung ansehen</a></p>
-            ";
-            return SendAsync(toEmail, subject, html);
+            var model = new BudgetInviteEmailViewModel
+            {
+                DisplayName = displayName,
+                BudgetName = budgetName,
+                InviteUrl = inviteUrl,
+            };
+            var html = await _viewRenderer.RenderAsync("~/Views/Emails/BudgetInvite.cshtml", model);
+            await SendAsync(toEmail, subject, html);
         }
 
         private async Task SendAsync(string toEmail, string subject, string htmlBody)

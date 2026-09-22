@@ -48,6 +48,7 @@ try
 
     // Email
     builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddScoped<IRazorViewToStringRenderer, RazorViewToStringRenderer>();
 
     // Dependency Injection for Repositories
     builder.Services.AddScoped<DapperContext>();

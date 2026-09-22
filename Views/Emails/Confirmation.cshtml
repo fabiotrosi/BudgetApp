@@ -1,0 +1,9 @@
+@model BudgetApp.Models.ConfirmationEmailViewModel
+@{
+    Layout = "_EmailLayout";
+    ViewData["Title"] = "Bitte bestätigen Sie Ihre E-Mail-Adresse";
+}
+<p>Hallo @Model.DisplayName,</p>
+<p>Bitte bestätigen Sie Ihre E-Mail-Adresse, um BudgetApp uneingeschränkt nutzen zu können.</p>
+<p><partial name="_EmailButton" model="@((Model.ConfirmUrl, "E-Mail-Adresse bestätigen"))" /></p>
+<p>Dieser Link ist 24 Stunden gültig.</p>
