@@ -9,20 +9,26 @@ namespace BudgetApp.Data.Repositories
         public BudgetUserRepository(DapperContext context)
             : base(context) { }
 
-        public async Task<IEnumerable<T>> GetByBudgetId(int budgetId)
+        public async Task<IEnumerable<T>> GetByBudgetId(int budgetId, bool includeInactive = false)
         {
             using var conn = _context.CreateConnection();
             var sql =
-                @"
+                $@"
             SELECT bu.[Id]
                   ,bu.[BudgetId]
                   ,bu.[UserId]
                   ,bu.[IsMainLeader]
+                  ,bu.[IsActive]
+                  ,bu.[DeactivatedAt]
+                  ,bu.[DeactivatedByUserId]
+                  ,bu.[ReactivatedAt]
+                  ,bu.[ReactivatedByUserId]
                   ,u.[DisplayName]
                   ,u.[Email]
               FROM [dbo].[BudgetUser] bu
               INNER JOIN [dbo].[User] u ON bu.[UserId] = u.[Id]
               WHERE bu.[BudgetId] = @BudgetId
+                {(includeInactive ? "" : "AND bu.[IsActive] = 1")}
               ORDER BY bu.[IsMainLeader] DESC, u.[DisplayName]
             ";
             return await conn.QueryAsync<T>(sql, new { BudgetId = budgetId });
@@ -37,11 +43,17 @@ namespace BudgetApp.Data.Repositories
                   ,bu.[BudgetId]
                   ,bu.[UserId]
                   ,bu.[IsMainLeader]
+                  ,bu.[IsActive]
+                  ,bu.[DeactivatedAt]
+                  ,bu.[DeactivatedByUserId]
+                  ,bu.[ReactivatedAt]
+                  ,bu.[ReactivatedByUserId]
                   ,u.[DisplayName]
                   ,u.[Email]
               FROM [dbo].[BudgetUser] bu
               INNER JOIN [dbo].[User] u ON bu.[UserId] = u.[Id]
               WHERE bu.[UserId] = @UserId
+                AND bu.[IsActive] = 1
             ";
             return await conn.QueryAsync<T>(sql, new { UserId = userId });
         }
@@ -64,12 +76,44 @@ namespace BudgetApp.Data.Repositories
             return await conn.ExecuteScalarAsync<int>(sql, budgetUser);
         }
 
-        public async Task<int> Delete(int id)
+        public async Task<int> Deactivate(int id, int deactivatedByUserId)
         {
             ValidateId(id);
             using var conn = _context.CreateConnection();
-            var sql = "DELETE FROM [dbo].[BudgetUser] WHERE [Id] = @Id";
-            return await conn.ExecuteAsync(sql, new { Id = id });
+            var sql =
+                @"
+            UPDATE [dbo].[BudgetUser]
+               SET [IsActive] = 0
+                  ,[DeactivatedAt] = GETDATE()
+                  ,[DeactivatedByUserId] = @DeactivatedByUserId
+                  ,[ReactivatedAt] = NULL
+                  ,[ReactivatedByUserId] = NULL
+             WHERE [Id] = @Id
+            ";
+            return await conn.ExecuteAsync(
+                sql,
+                new { Id = id, DeactivatedByUserId = deactivatedByUserId }
+            );
+        }
+
+        public async Task<int> Reactivate(int id, int reactivatedByUserId)
+        {
+            ValidateId(id);
+            using var conn = _context.CreateConnection();
+            var sql =
+                @"
+            UPDATE [dbo].[BudgetUser]
+               SET [IsActive] = 1
+                  ,[ReactivatedAt] = GETDATE()
+                  ,[ReactivatedByUserId] = @ReactivatedByUserId
+                  ,[DeactivatedAt] = NULL
+                  ,[DeactivatedByUserId] = NULL
+             WHERE [Id] = @Id
+            ";
+            return await conn.ExecuteAsync(
+                sql,
+                new { Id = id, ReactivatedByUserId = reactivatedByUserId }
+            );
         }
     }
 }

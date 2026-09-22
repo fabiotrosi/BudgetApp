@@ -720,3 +720,31 @@ BEGIN
     DROP TABLE [dbo].[Camp];
 END
 GO
+
+-- =============================================
+-- Deactivate/Reactivate Budget Leaders (#30)
+-- BudgetUser rows are soft-deactivated instead of hard-deleted so leader
+-- history (audit, past transactions) is preserved. Only the two columns for
+-- the *current* state's last transition are ever populated — deactivating
+-- clears the Reactivated* pair and vice versa.
+-- =============================================
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[BudgetUser]') AND name = 'IsActive')
+BEGIN
+    ALTER TABLE [dbo].[BudgetUser] ADD [IsActive] [bit] NOT NULL DEFAULT 1;
+    ALTER TABLE [dbo].[BudgetUser] ADD [DeactivatedAt] [datetime] NULL;
+    ALTER TABLE [dbo].[BudgetUser] ADD [DeactivatedByUserId] [int] NULL;
+    ALTER TABLE [dbo].[BudgetUser] ADD [ReactivatedAt] [datetime] NULL;
+    ALTER TABLE [dbo].[BudgetUser] ADD [ReactivatedByUserId] [int] NULL;
+END
+GO
+
+-- NO ACTION: prevent deleting a user who deactivated/reactivated a leader
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_BudgetUser_DeactivatedByUser]'))
+    ALTER TABLE [dbo].[BudgetUser] WITH CHECK ADD CONSTRAINT [FK_BudgetUser_DeactivatedByUser]
+        FOREIGN KEY([DeactivatedByUserId]) REFERENCES [dbo].[User] ([Id])
+GO
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_BudgetUser_ReactivatedByUser]'))
+    ALTER TABLE [dbo].[BudgetUser] WITH CHECK ADD CONSTRAINT [FK_BudgetUser_ReactivatedByUser]
+        FOREIGN KEY([ReactivatedByUserId]) REFERENCES [dbo].[User] ([Id])
+GO
