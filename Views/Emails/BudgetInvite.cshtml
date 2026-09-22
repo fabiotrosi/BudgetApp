@@ -1,0 +1,8 @@
+@model BudgetApp.Models.BudgetInviteEmailViewModel
+@{
+    Layout = "_EmailLayout";
+    ViewData["Title"] = "Einladung zu einem Lager";
+}
+<p>Hallo @Model.DisplayName,</p>
+<p>Sie wurden zum Lager <strong>@Model.BudgetName</strong> eingeladen.</p>
+<p><partial name="_EmailButton" model="@((Model.InviteUrl, "Einladung ansehen"))" /></p>
