@@ -43,17 +43,23 @@
         }
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#budgetAddPositionModal">
-            Position hinzufügen <i class="bi bi-plus-square"></i>
-        </button>
+        @if (Model.IsMainLeader)
+        {
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#budgetAddPositionModal">
+                Position hinzufügen <i class="bi bi-plus-square"></i>
+            </button>
+        }
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCreateTransactionModal(@Model.Budget.Id)">
             Ausgabe erfassen <i class="bi bi-cash-coin"></i>
         </button>
-        <a asp-action="Edit" asp-route-id="@Model.Budget.Id" class="btn btn-outline-secondary btn-sm">
-            Lagerdaten bearbeiten <i class="bi bi-pen"></i>
-        </a>
+        @if (Model.IsMainLeader)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Budget.Id" class="btn btn-outline-secondary btn-sm">
+                Lagerdaten bearbeiten <i class="bi bi-pen"></i>
+            </a>
+        }
         <a asp-action="Leaders" asp-route-id="@Model.Budget.Id" class="btn btn-outline-secondary btn-sm">
-            Leitpersonen verwalten <i class="bi bi-people"></i>
+            @(Model.IsMainLeader ? "Leitpersonen verwalten" : "Leitpersonen anzeigen") <i class="bi bi-people"></i>
         </a>
         @if (Model.IsMainLeader)
         {
@@ -131,19 +137,22 @@
                             <td class="text-end">@(pos.UnitAmount_rl == null ? "–" : "CHF " + pos.UnitAmount_rl.Value.ToString("N2"))</td>
                             <td class="text-end fw-semibold">CHF @pos.TotalAmount_rl.ToString("N2")</td>
                             <td class="text-end text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        onclick="openEditPositionModal(@pos.Id)">
-                                    <i class="bi bi-pen"></i>
-                                </button>
-                                <form asp-action="DeleteBudgetPosition" method="post" class="d-inline"
-                                      onsubmit="return confirm('Position «@pos.Name» wirklich löschen?')">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@pos.Id" />
-                                    <input type="hidden" name="budgetId" value="@Model.Budget.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
+                                @if (Model.IsMainLeader)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            onclick="openEditPositionModal(@pos.Id)">
+                                        <i class="bi bi-pen"></i>
                                     </button>
-                                </form>
+                                    <form asp-action="DeleteBudgetPosition" method="post" class="d-inline"
+                                          onsubmit="return confirm('Position «@pos.Name» wirklich löschen?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@pos.Id" />
+                                        <input type="hidden" name="budgetId" value="@Model.Budget.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
                             </td>
                         </tr>
                     }
@@ -208,7 +217,7 @@ else
 
 <script>
     function openEditPositionModal(id) {
-        fetch('@Url.Action("EditPositionModal", "Budget")?id=' + id)
+        fetch('@Url.Action("EditPositionModal", "Budget")?id=' + id + '&budgetId=@Model.Budget.Id')
             .then(r => r.text())
             .then(html => {
                 const container = document.getElementById('editPositionModalContainer');
@@ -220,23 +229,26 @@ else
     }
 </script>
 
-@await Html.PartialAsync("_AddPosition", new AddPositionPartialViewModel
+@if (Model.IsMainLeader)
 {
-    ModalId = "budgetAddPositionModal",
-    FormAction = "AddBudgetPosition",
-    FormController = "Budget",
-    ParentIdFieldName = "BudgetId",
-    ParentId = Model.Budget.Id,
-    CategorySelectId = "budgetAddCategoryId",
-    SubCategorySelectId = "budgetAddSubCategoryId",
-    PositionTypes = Model.PositionTypes,
-    Categories = Model.AllCategories,
-    SubCategories = Model.AllSubCategories,
-    ShowCampVariables = true,
-    CampParticipantsCount_fc = Model.Budget.ParticipantsCount_fc,
-    CampJs_PersonsCount_fc = Model.Budget.js_PersonsCount_fc,
-    CampLeadersTeamCount_fc = Model.Budget.LeadersTeamCount_fc
-})
+    @await Html.PartialAsync("_AddPosition", new AddPositionPartialViewModel
+    {
+        ModalId = "budgetAddPositionModal",
+        FormAction = "AddBudgetPosition",
+        FormController = "Budget",
+        ParentIdFieldName = "BudgetId",
+        ParentId = Model.Budget.Id,
+        CategorySelectId = "budgetAddCategoryId",
+        SubCategorySelectId = "budgetAddSubCategoryId",
+        PositionTypes = Model.PositionTypes,
+        Categories = Model.AllCategories,
+        SubCategories = Model.AllSubCategories,
+        ShowCampVariables = true,
+        CampParticipantsCount_fc = Model.Budget.ParticipantsCount_fc,
+        CampJs_PersonsCount_fc = Model.Budget.js_PersonsCount_fc,
+        CampLeadersTeamCount_fc = Model.Budget.LeadersTeamCount_fc
+    })
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

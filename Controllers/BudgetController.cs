@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BudgetApp.Authorization;
 using BudgetApp.Data.Repositories;
 using BudgetApp.Enums;
 using BudgetApp.Extensions;
@@ -178,28 +179,24 @@ namespace BudgetApp.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> Edit(int id)
         {
-            int userId = GetCurrentUserId();
             var budget = await _budgetRepo.GetById(id);
             if (budget == null)
                 return NotFound();
-            if (!await HasAccessAsync(budget, userId))
-                return Forbid();
 
             return View(MapToViewModel(budget));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> Edit(BudgetFormViewModel vm)
         {
-            int userId = GetCurrentUserId();
             var existing = await _budgetRepo.GetById(vm.Id);
             if (existing == null)
                 return NotFound();
-            if (!await HasAccessAsync(existing, userId))
-                return Forbid();
 
             if (!ModelState.IsValid)
                 return View(vm);
@@ -240,14 +237,12 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> Delete(int id)
         {
-            int userId = GetCurrentUserId();
             var budget = await _budgetRepo.GetById(id);
             if (budget == null)
                 return NotFound();
-            if (budget.CreatedByUserId != userId)
-                return Forbid();
 
             var toast = new ToastMessageViewModel();
             try
@@ -410,10 +405,11 @@ namespace BudgetApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> EditPositionModal(int id)
+        [Authorize(Policy = Policies.MainLeaderOnly)]
+        public async Task<IActionResult> EditPositionModal(int id, int budgetId)
         {
             var pos = await _positionRepo.GetById(id);
-            if (pos == null)
+            if (pos == null || pos.BudgetId != budgetId)
                 return NotFound();
 
             var budget = await _budgetRepo.GetById(pos.BudgetId);
@@ -457,12 +453,15 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> SavePosition(EditBudgetPositionViewModel vm)
         {
             var toast = new ToastMessageViewModel();
             try
             {
                 var pos = await _positionRepo.GetById(vm.Id);
+                if (pos != null && pos.BudgetId != vm.BudgetId)
+                    return NotFound();
                 if (pos != null)
                 {
                     pos.Name = vm.Name;
@@ -508,6 +507,7 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> AddBudgetPosition(AddBudgetPositionViewModel vm)
         {
             if (!ModelState.IsValid)
@@ -565,11 +565,16 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> DeleteBudgetPosition(int id, int budgetId)
         {
             var toast = new ToastMessageViewModel();
             try
             {
+                var pos = await _positionRepo.GetById(id);
+                if (pos == null || pos.BudgetId != budgetId)
+                    return NotFound();
+
                 await _positionRepo.Delete(id);
                 toast = new ToastMessageViewModel
                 {
@@ -594,24 +599,12 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> DeactivateBudgetUser(int budgetUserId, int budgetId)
         {
             var toast = new ToastMessageViewModel();
             try
             {
-                var budget = await _budgetRepo.GetById(budgetId);
-                if (budget == null || budget.CreatedByUserId != GetCurrentUserId())
-                {
-                    toast = new ToastMessageViewModel
-                    {
-                        Title = "Fehler",
-                        Message = "Keine Berechtigung.",
-                        Type = ToastType.Error,
-                    };
-                    TempData.Put("ToastMsg", toast);
-                    return RedirectToAction(nameof(Leaders), new { id = budgetId });
-                }
-
                 var targetBudgetUsers = await _budgetUserRepo.GetByBudgetId(
                     budgetId,
                     includeInactive: true
@@ -653,13 +646,18 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> ReactivateBudgetUser(int budgetUserId, int budgetId)
         {
             var toast = new ToastMessageViewModel();
             try
             {
-                var budget = await _budgetRepo.GetById(budgetId);
-                if (budget == null || budget.CreatedByUserId != GetCurrentUserId())
+                var targetBudgetUsers = await _budgetUserRepo.GetByBudgetId(
+                    budgetId,
+                    includeInactive: true
+                );
+                var target = targetBudgetUsers.FirstOrDefault(bu => bu.Id == budgetUserId);
+                if (target == null)
                 {
                     toast = new ToastMessageViewModel
                     {

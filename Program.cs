@@ -1,9 +1,11 @@
+using BudgetApp.Authorization;
 using BudgetApp.Data;
 using BudgetApp.Data.Repositories;
 using BudgetApp.Models;
 using BudgetApp.Resources;
 using BudgetApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using NLog;
 using NLog.Web;
@@ -36,13 +38,21 @@ try
         .AddCookie(options =>
         {
             options.LoginPath = "/Account/Login";
-            options.AccessDeniedPath = "/Account/Login";
+            options.AccessDeniedPath = "/Account/AccessDenied";
             options.ExpireTimeSpan = TimeSpan.FromDays(14);
             options.SlidingExpiration = true;
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             options.Cookie.SameSite = SameSiteMode.Strict;
         });
+
+    builder.Services.AddAuthorization(options =>
+        options.AddPolicy(
+            Policies.MainLeaderOnly,
+            policy => policy.RequireAuthenticatedUser().AddRequirements(new MainLeaderRequirement())
+        )
+    );
+    builder.Services.AddScoped<IAuthorizationHandler, MainLeaderHandler>();
 
     builder.Services.AddScoped<IPasswordHasher<UserModel>, PasswordHasher<UserModel>>();
 
