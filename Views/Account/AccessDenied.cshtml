@@ -1,0 +1,11 @@
+@{
+    ViewData["Title"] = "Kein Zugriff";
+}
+
+<h2>Kein Zugriff</h2>
+<p class="text-muted">Sie haben keine Berechtigung für diese Aktion.</p>
+
+<div class="d-flex gap-2">
+    <partial name="_GoBackButton" />
+    <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-secondary btn-sm">Zu den Budgets</a>
+</div>

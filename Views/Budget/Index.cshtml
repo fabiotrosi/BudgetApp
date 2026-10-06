@@ -56,10 +56,13 @@ else
                             <i class="bi bi-eye"></i>
                         </a>
                         
-                        <a asp-action="Edit" asp-route-id="@budget.Id" class="btn btn-sm btn-outline-secondary" title="Lagerdaten bearbeiten">
-                            <i class="bi bi-pen"></i>
-                        </a>
-                        <a asp-action="Leaders" asp-route-id="@budget.Id" class="btn btn-sm btn-outline-secondary" title="Leitpersonen verwalten">
+                        @if (row.IsMainLeader)
+                        {
+                            <a asp-action="Edit" asp-route-id="@budget.Id" class="btn btn-sm btn-outline-secondary" title="Lagerdaten bearbeiten">
+                                <i class="bi bi-pen"></i>
+                            </a>
+                        }
+                        <a asp-action="Leaders" asp-route-id="@budget.Id" class="btn btn-sm btn-outline-secondary" title="@(row.IsMainLeader ? "Leitpersonen verwalten" : "Leitpersonen anzeigen")">
                             <i class="bi bi-people"></i>
                         </a>
                     </td>

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BudgetApp.Authorization;
 using BudgetApp.Data.Repositories;
 using BudgetApp.Enums;
 using BudgetApp.Extensions;
@@ -40,13 +41,9 @@ namespace BudgetApp.Controllers
             int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         [HttpGet]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> Form(int budgetId)
         {
-            int userId = GetCurrentUserId();
-            var budgetUsers = (await _budgetUserRepo.GetByBudgetId(budgetId)).ToList();
-            if (!budgetUsers.IsMainLeaderFor(userId))
-                return Forbid();
-
             return PartialView(
                 "_InviteLeaderModal",
                 new SendInviteViewModel { Email = string.Empty, BudgetId = budgetId }
@@ -70,6 +67,7 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> Send(SendInviteViewModel vm)
         {
             int userId = GetCurrentUserId();
@@ -81,15 +79,6 @@ namespace BudgetApp.Controllers
             var budgetUsers = (
                 await _budgetUserRepo.GetByBudgetId(vm.BudgetId, includeInactive: true)
             ).ToList();
-            bool isMainLeader = budgetUsers.IsMainLeaderFor(userId);
-            if (!isMainLeader)
-            {
-                ModelState.AddModelError(
-                    string.Empty,
-                    "Nur die Hauptleitperson kann Einladungen versenden."
-                );
-                return PartialView("_InviteLeaderModal", vm);
-            }
 
             if (!ModelState.IsValid)
                 return PartialView("_InviteLeaderModal", vm);
@@ -204,28 +193,13 @@ namespace BudgetApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reinvite(int id)
+        [Authorize(Policy = Policies.MainLeaderOnly)]
+        public async Task<IActionResult> Reinvite(int id, int budgetId)
         {
             int userId = GetCurrentUserId();
             var invite = await _inviteRepo.GetById(id);
-            if (invite == null)
+            if (invite == null || invite.BudgetId != budgetId)
                 return NotFound();
-
-            var budgetUsers = (await _budgetUserRepo.GetByBudgetId(invite.BudgetId)).ToList();
-            bool isMainLeader = budgetUsers.Any(bu => bu.UserId == userId && bu.IsMainLeader);
-            if (!isMainLeader)
-            {
-                TempData.Put(
-                    "ToastMsg",
-                    new ToastMessageViewModel
-                    {
-                        Title = "Fehler",
-                        Message = "Nur die Hauptleitperson kann Einladungen versenden.",
-                        Type = ToastType.Error,
-                    }
-                );
-                return RedirectToAction("Leaders", "Budget", new { id = invite.BudgetId });
-            }
 
             if (invite.Status != InviteStatus.Declined)
             {

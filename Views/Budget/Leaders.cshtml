@@ -122,6 +122,7 @@
                                 <form asp-controller="Invite" asp-action="Reinvite" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@invite.Id" />
+                                    <input type="hidden" name="budgetId" value="@Model.Budget.Id" />
                                     <button type="submit" class="btn btn-sm btn-outline-primary">
                                         Erneut einladen <i class="bi bi-arrow-repeat"></i>
                                     </button>

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BudgetApp.Authorization;
 using BudgetApp.Data.Repositories;
 using BudgetApp.Enums;
 using BudgetApp.Extensions;
@@ -394,16 +395,12 @@ namespace BudgetApp.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Policies.MainLeaderOnly)]
         public async Task<IActionResult> BudgetOverview(int budgetId)
         {
-            int userId = GetCurrentUserId();
             var budget = await _budgetRepo.GetById(budgetId);
             if (budget == null)
                 return NotFound();
-
-            var budgetUsers = await _budgetUserRepo.GetByBudgetId(budgetId);
-            if (!budgetUsers.IsMainLeaderFor(userId))
-                return Forbid();
 
             var vm = new TransactionBudgetOverviewViewModel
             {
